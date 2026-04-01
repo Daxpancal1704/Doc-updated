@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+
+<div class="history-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="page-title-group">
+      <p class="page-eyebrow">
+        <i class="fa-solid fa-clock-rotate-left me-1"></i> Records
+      </p>
+      <h1 class="page-title">Scan History</h1>
+    </div>
+    {% if history %}
+    <span class="page-meta">
+      <i class="fa-regular fa-file-lines me-1"></i>
+      Page {{ history.number }} of {{ history.paginator.num_pages }}
+    </span>
+    {% endif %}
+  </div>
+
+  <!-- Card -->
+  <div class="history-card">
+
+    {% if history %}
+
+    <div class="table-responsive">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Scan Type</th>
+            <th>File Name</th>
+            <th>Result</th>
+            <th>Accuracy</th>
+            <th>Date</th>
+            <th>Report</th>
+            <th>Download</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in history %}
+          <tr class="history-row">
+
+            <!-- Scan Type -->
+            <td>
+              <span class="scan-type-badge">
+                <i class="fa-solid fa-microscope" style="font-size:10px;"></i>
+                {{ h.scan_type }}
+              </span>
+            </td>
+
+            <!-- File Name -->
+            <td class="file-name" title="{{ h.file_name }}">{{ h.file_name }}</td>
+
+            <!-- Result -->
+            <td>
+              {% with r=h.result|lower %}
+                {% if "positive" in r or "detected" in r or "yes" in r %}
+                  <span class="result-positive">{{ h.result }}</span>
+                {% elif "negative" in r or "not" in r or "no" in r or "clear" in r %}
+                  <span class="result-negative">{{ h.result }}</span>
+                {% else %}
+                  <span class="result-neutral">{{ h.result }}</span>
+                {% endif %}
+              {% endwith %}
+            </td>
+
+            <!-- Accuracy -->
+            <td>
+              <div class="accuracy-wrap">
+                <div class="accuracy-bar">
+                  <div class="accuracy-fill" style="width: {{ h.accuracy }}%;"></div>
+                </div>
+                <span class="accuracy-num">{{ h.accuracy }}%</span>
+              </div>
+            </td>
+
+            <!-- Date -->
+            <td class="date-cell">{{ h.created_at }}</td>
+
+            <!-- Report -->
+            <td>
+              <a href="/report/{{ h.id }}/" class="report-btn">
+                <i class="fa-regular fa-eye me-1" style="font-size:10px;"></i>View
+              </a>
+            </td>
+
+            <!-- Download -->
+            <td>
+              {% if user.is_authenticated %}
+                <a href="/download/{{ h.id }}/" class="download-btn">
+                  <i class="fa-solid fa-arrow-down me-1" style="font-size:10px;"></i>PDF
+                </a>
+              {% else %}
+                <span class="login-required-tag">Login required</span>
+              {% endif %}
+            </td>
+
+            <!-- Delete -->
+            <td>
+              <form method="POST" action="{% url 'delete_scan' h.id %}"
+                    onsubmit="return confirm('Delete this scan record?');" style="margin:0;">
+                {% csrf_token %}
+                <button type="submit" class="delete-btn">
+                  <i class="fa-regular fa-trash-can me-1" style="font-size:10px;"></i>Delete
+                </button>
+              </form>
+            </td>
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-bar">
+      {% if history.has_previous %}
+        <a href="?page={{ history.previous_page_number }}" class="btn btn-secondary">
+          <i class="fa-solid fa-chevron-left me-1" style="font-size:10px;"></i>Prev
+        </a>
+      {% else %}
+        <button class="btn btn-secondary" disabled>
+          <i class="fa-solid fa-chevron-left me-1" style="font-size:10px;"></i>Prev
+        </button>
+      {% endif %}
+
+      <span class="page-indicator">
+        Page <strong>{{ history.number }}</strong> of <strong>{{ history.paginator.num_pages }}</strong>
+      </span>
+
+      {% if history.has_next %}
+        <a href="?page={{ history.next_page_number }}" class="btn btn-secondary">
+          Next<i class="fa-solid fa-chevron-right ms-1" style="font-size:10px;"></i>
+        </a>
+      {% else %}
+        <button class="btn btn-secondary" disabled>
+          Next<i class="fa-solid fa-chevron-right ms-1" style="font-size:10px;"></i>
+        </button>
+      {% endif %}
+    </div>
+
+    {% else %}
+
+    <!-- Empty State -->
+    <div class="empty-state">
+      <div class="empty-icon">
+        <i class="fa-regular fa-folder-open"></i>
+      </div>
+      <p class="empty-title">No scans yet</p>
+      <p class="empty-sub">Your document scan records will appear here once you run your first scan.</p>
+      <a href="/" class="btn btn-primary">
+        <i class="fa-solid fa-plus me-2" style="font-size:11px;"></i>Start a New Scan
+      </a>
+    </div>
+
+    {% endif %}
+
+  </div>
+
+</div>
+
+{% endblock %}

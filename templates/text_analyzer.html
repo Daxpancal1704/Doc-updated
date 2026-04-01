@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<style>
+</style>
+
+<div class="analyzer-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <p class="page-eyebrow">
+      <i class="fa-solid fa-font me-1"></i> Detection
+    </p>
+    <h1 class="page-title">Text Analyzer</h1>
+  </div>
+
+  <!-- Input Card -->
+  <div class="input-card">
+    <p class="section-label">
+      <i class="fa-solid fa-pen-to-square" style="font-size:11px;"></i> Enter Text
+    </p>
+
+    <form method="POST">
+      {% csrf_token %}
+
+      <div class="textarea-wrap">
+        <textarea
+          name="text"
+          id="textInput"
+          class="text-input"
+          rows="10"
+          maxlength="5000"
+          placeholder="Paste or type the text you want to analyze…"
+          required
+        ></textarea>
+      </div>
+
+      <div class="char-row">
+        <span class="char-counter" id="charCount">0 / 5000 characters</span>
+        <div class="char-bar-track">
+          <div class="char-bar-fill" id="charBar"></div>
+        </div>
+      </div>
+
+      <button type="submit" class="analyze-btn">
+        <i class="fa-solid fa-magnifying-glass" style="font-size:11px;"></i>
+        Analyze Text
+      </button>
+    </form>
+  </div>
+
+
+  {% if results %}
+
+  <!-- Legend -->
+  <div class="legend-strip">
+    <span style="font-family:var(--font-body); font-size:0.72rem; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:var(--text-muted);">Legend</span>
+    <span class="legend-item"><span class="legend-dot ai"></span> AI Generated</span>
+    <span class="legend-item"><span class="legend-dot human"></span> Human Written</span>
+    <span class="legend-item"><span class="legend-dot mixed"></span> Mixed / Uncertain</span>
+  </div>
+
+  <!-- Score Card -->
+  <p class="section-label">
+    <i class="fa-solid fa-chart-pie" style="font-size:11px;"></i> Detection Results
+  </p>
+
+  <div class="score-card">
+
+    <div class="confidence-badge">
+      <i class="fa-solid fa-shield-halved" style="font-size:11px;"></i>
+      Confidence Score &nbsp;<strong>{{ confidence }}%</strong>
+    </div>
+
+    <!-- Quick score tiles -->
+    <div class="score-grid">
+      <div class="score-tile">
+        <p class="score-tile-num ai">{{ ai_percent }}<span style="font-size:1rem;">%</span></p>
+        <p class="score-tile-label">AI Content</p>
+      </div>
+      <div class="score-tile">
+        <p class="score-tile-num human">{{ human_percent }}<span style="font-size:1rem;">%</span></p>
+        <p class="score-tile-label">Human Content</p>
+      </div>
+      <div class="score-tile">
+        <p class="score-tile-num mixed">{{ mixed_percent }}<span style="font-size:1rem;">%</span></p>
+        <p class="score-tile-label">Mixed</p>
+      </div>
+    </div>
+
+    <!-- Progress bars -->
+    <div class="metric-row">
+      <div class="metric-header">
+        <span class="metric-label"><span class="metric-dot ai"></span>AI Generated</span>
+        <span class="metric-pct">{{ ai_percent }}%</span>
+      </div>
+      <div class="metric-bar">
+        <div class="metric-fill ai" data-width="{{ ai_percent }}"></div>
+      </div>
+    </div>
+
+    <div class="metric-row">
+      <div class="metric-header">
+        <span class="metric-label"><span class="metric-dot human"></span>Human Written</span>
+        <span class="metric-pct">{{ human_percent }}%</span>
+      </div>
+      <div class="metric-bar">
+        <div class="metric-fill human" data-width="{{ human_percent }}"></div>
+      </div>
+    </div>
+
+    <div class="metric-row">
+      <div class="metric-header">
+        <span class="metric-label"><span class="metric-dot mixed"></span>Mixed / Uncertain</span>
+        <span class="metric-pct">{{ mixed_percent }}%</span>
+      </div>
+      <div class="metric-bar">
+        <div class="metric-fill mixed" data-width="{{ mixed_percent }}"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Verdict -->
+  <p class="section-label">
+    <i class="fa-solid fa-gavel" style="font-size:11px;"></i> Final Verdict
+  </p>
+
+  {% if ai_percent > human_percent and ai_percent > mixed_percent %}
+  <div class="verdict-card danger">
+    <div class="verdict-icon"><i class="fa-solid fa-robot"></i></div>
+    <div>
+      <p class="verdict-eyebrow">Verdict</p>
+      <p class="verdict-text">This text appears to be mostly AI Generated.</p>
+    </div>
+  </div>
+  {% elif human_percent > ai_percent and human_percent > mixed_percent %}
+  <div class="verdict-card success">
+    <div class="verdict-icon"><i class="fa-solid fa-user-pen"></i></div>
+    <div>
+      <p class="verdict-eyebrow">Verdict</p>
+      <p class="verdict-text">This text appears to be written by a Human.</p>
+    </div>
+  </div>
+  {% else %}
+  <div class="verdict-card warning">
+    <div class="verdict-icon"><i class="fa-solid fa-circle-question"></i></div>
+    <div>
+      <p class="verdict-eyebrow">Verdict</p>
+      <p class="verdict-text">Uncertain — the text appears to be mixed.</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Download -->
+  {% if scan_id %}
+  <div style="display:flex; justify-content:center; margin-top:8px;">
+    {% if user.is_authenticated %}
+    <a href="{% url 'download_report' scan_id %}" class="download-btn">
+      <i class="fa-solid fa-arrow-down" style="font-size:11px;"></i>
+      Download Report
+    </a>
+    {% else %}
+    <a href="{% url 'login' %}" class="login-btn">
+      <i class="fa-solid fa-right-to-bracket" style="font-size:11px;"></i>
+      Login to Download Report
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% endif %}
+
+</div>
+
+<script>
+  
+</script>
+
+<script src="{% static 'js/home.js' %}"></script>
+<script src="{% static 'js/text.js' %}"></script>
+
+{% endblock %}
