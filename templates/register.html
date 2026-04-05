@@ -3,113 +3,442 @@
 
 {% block content %}
 
-<link rel="stylesheet" href="{% static 'css/register.css' %}">
+<style>
 
-<div class="register-container">
+  /* ════════════════════════════════
+     PAGE LAYOUT
+  ════════════════════════════════ */
+  .auth-page {
+    min-height: calc(100vh - 120px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px 80px;
+  }
 
-<h2 class="title">Create Account</h2>
+  /* ════════════════════════════════
+     AUTH CARD
+  ════════════════════════════════ */
+  .auth-card {
+    width: 100%;
+    max-width: 460px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(60,65,90,0.11);
+    padding: 40px 36px;
+    animation: authIn 0.5s cubic-bezier(.22,.68,0,1.1) both;
+    position: relative;
+    overflow: hidden;
+  }
 
-<form method="POST" class="register-form">
+  .auth-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-vivid), #8CA4C8);
+    border-radius: 20px 20px 0 0;
+  }
 
-{% csrf_token %}
+  @keyframes authIn {
+    from { opacity:0; transform:translateY(22px) scale(0.98); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+  }
 
-<!-- GLOBAL FORM ERRORS -->
-{% if form.non_field_errors %}
-<div class="form-error">
-{{ form.non_field_errors }}
+  /* ── Brand ── */
+  .auth-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .auth-brand-icon {
+    width: 48px; height: 48px;
+    background: var(--accent-vivid);
+    border-radius: 13px;
+    display: grid; place-items: center;
+    font-size: 20px;
+    color: #fff;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 14px rgba(61,74,107,0.28);
+  }
+
+  .auth-title {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    line-height: 1.1;
+  }
+
+  .auth-subtitle {
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  /* ── Global error ── */
+  .auth-error {
+    background: #FDECEA;
+    border: 1px solid #F5C6CB;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    color: #9B2335;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .auth-error i { font-size: 12px; margin-top: 2px; flex-shrink: 0; }
+
+  /* ── Form groups ── */
+  .form-group { margin-bottom: 18px; }
+
+  .form-group label {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+  }
+
+  /* target Django-rendered inputs */
+  .form-group input,
+  .form-group input[type="text"],
+  .form-group input[type="email"],
+  .form-group input[type="password"] {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    outline: none;
+    display: block;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+
+  .form-group input:focus {
+    border-color: var(--accent-vivid);
+    box-shadow: 0 0 0 3px rgba(61,74,107,0.1);
+    background: var(--bg-card);
+  }
+
+  .form-group input::placeholder { color: var(--text-muted); opacity: 0.5; }
+
+  /* field error */
+  .error-text {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    color: #9B2335;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .error-text::before {
+    content: '\f071';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 10px;
+  }
+
+  /* ── Password box (show/hide) ── */
+  .password-box {
+    position: relative;
+  }
+
+  .password-box input { padding-right: 44px; }
+
+  .toggle-password {
+    position: absolute;
+    right: 13px; top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--text-muted);
+    user-select: none;
+    transition: color 0.18s ease;
+    display: flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+  }
+
+  .toggle-password:hover { color: var(--accent-vivid); }
+
+  /* ── Two-column row ── */
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+
+  /* ── Password strength ── */
+  .strength-track {
+    height: 3px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+
+  .strength-fill {
+    height: 100%;
+    border-radius: 99px;
+    width: 0%;
+    transition: width 0.3s ease, background 0.3s ease;
+  }
+
+  .strength-label {
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    text-align: right;
+    transition: color 0.2s ease;
+  }
+
+  /* ── Submit button ── */
+  .auth-submit {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    font-weight: 600;
+    background: var(--accent-vivid);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 12px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 10px rgba(61,74,107,0.22);
+    letter-spacing: 0.02em;
+  }
+
+  .auth-submit:hover {
+    background: #2F3A56;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(61,74,107,0.3);
+  }
+
+  .auth-submit:active { transform: translateY(0); }
+
+  /* ── Divider ── */
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 22px 0;
+  }
+
+  .auth-divider::before,
+  .auth-divider::after {
+    content: ''; flex: 1;
+    height: 1px; background: var(--border);
+  }
+
+  .auth-divider span {
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* ── Footer link ── */
+  .auth-footer {
+    text-align: center;
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .auth-footer a {
+    color: var(--accent-vivid);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.18s ease;
+  }
+
+  .auth-footer a:hover { color: #2F3A56; text-decoration: underline; }
+
+  /* ── Terms hint ── */
+  .terms-hint {
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 14px;
+    line-height: 1.5;
+  }
+
+  .terms-hint a { color: var(--accent-vivid); text-decoration: none; }
+  .terms-hint a:hover { text-decoration: underline; }
+
+</style>
+
+<div class="auth-page">
+  <div class="auth-card">
+
+    <!-- Brand -->
+    <div class="auth-brand">
+      <div class="auth-brand-icon">
+        <i class="fa-solid fa-brain"></i>
+      </div>
+      <h2 class="auth-title">Create Account</h2>
+      <p class="auth-subtitle">Join AI Scanner — it's free</p>
+    </div>
+
+    <form method="POST" class="register-form">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="auth-error">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span>{{ form.non_field_errors.0 }}</span>
+      </div>
+      {% endif %}
+
+      <!-- Username -->
+      <div class="form-group">
+        <label>Username</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+        <div class="error-text">{{ form.username.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label>Email address</label>
+        {{ form.email }}
+        {% if form.email.errors %}
+        <div class="error-text">{{ form.email.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Passwords (side by side on desktop) -->
+      <div class="form-row">
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Password</label>
+          <div class="password-box">
+            {{ form.password1 }}
+            <span class="toggle-password" onclick="togglePwd('id_password1', this)">
+              <i class="fa-regular fa-eye"></i>
+            </span>
+          </div>
+          <!-- strength bar -->
+          <div class="strength-track">
+            <div class="strength-fill" id="strengthFill"></div>
+          </div>
+          <p class="strength-label" id="strengthLabel"></p>
+          {% if form.password1.errors %}
+          <div class="error-text">{{ form.password1.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Confirm Password</label>
+          <div class="password-box">
+            {{ form.password2 }}
+            <span class="toggle-password" onclick="togglePwd('id_password2', this)">
+              <i class="fa-regular fa-eye"></i>
+            </span>
+          </div>
+          {% if form.password2.errors %}
+          <div class="error-text">{{ form.password2.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <button type="submit" class="auth-submit" style="margin-top:22px;">
+        <i class="fa-solid fa-user-plus" style="font-size:13px;"></i>
+        Create Account
+      </button>
+
+      <p class="terms-hint">
+        By registering you agree to our
+        <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+      </p>
+
+    </form>
+
+    <div class="auth-divider"><span>or</span></div>
+
+    <p class="auth-footer">
+      Already have an account? <a href="{% url 'login' %}">Sign in</a>
+    </p>
+
+  </div>
 </div>
-{% endif %}
 
+{% block extra_js %}
+<script>
+  /* ── Toggle password visibility ── */
+  function togglePwd(id, btn) {
+    const input = document.getElementById(id);
+    const icon  = btn.querySelector('i');
+    if (!input) return;
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    icon.className = isHidden ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+  }
 
-<div class="form-group">
-<label>Username</label>
+  /* ── Password strength meter ── */
+  const pwd1 = document.getElementById('id_password1');
+  const fill  = document.getElementById('strengthFill');
+  const label = document.getElementById('strengthLabel');
 
-{{ form.username }}
+  if (pwd1 && fill && label) {
+    pwd1.addEventListener('input', () => {
+      const v = pwd1.value;
+      let score = 0;
+      if (v.length >= 8)                   score++;
+      if (/[A-Z]/.test(v))                 score++;
+      if (/[0-9]/.test(v))                 score++;
+      if (/[^A-Za-z0-9]/.test(v))          score++;
+      if (v.length >= 12)                  score++;
 
-{% if form.username.errors %}
-<div class="error-text">
-{{ form.username.errors.0 }}
-</div>
-{% endif %}
+      const levels = [
+        { pct:0,   bg:'',                                    txt:'' },
+        { pct:20,  bg:'#9B2335',                             txt:'Very weak' },
+        { pct:40,  bg:'#E05C6E',                             txt:'Weak' },
+        { pct:60,  bg:'#9B5D2D',                             txt:'Fair' },
+        { pct:80,  bg:'#6B9E78',                             txt:'Good' },
+        { pct:100, bg:'linear-gradient(90deg,#2D6A4F,#6BBF8A)', txt:'Strong' },
+      ];
 
-</div>
-
-
-<div class="form-group">
-<label>Email</label>
-
-{{ form.email }}
-
-{% if form.email.errors %}
-<div class="error-text">
-{{ form.email.errors.0 }}
-</div>
-{% endif %}
-
-</div>
-
-
-<!-- PASSWORD -->
-
-<div class="form-group">
-
-<label>Password</label>
-
-<div class="password-box">
-
-{{ form.password1 }}
-
-<span class="toggle-password" onclick="togglePassword('id_password1')">
-👁
-</span>
-
-</div>
-
-{% if form.password1.errors %}
-<div class="error-text">
-{{ form.password1.errors.0 }}
-</div>
-{% endif %}
-
-</div>
-
-
-<!-- CONFIRM PASSWORD -->
-
-<div class="form-group">
-
-<label>Confirm Password</label>
-
-<div class="password-box">
-
-{{ form.password2 }}
-
-<span class="toggle-password" onclick="togglePassword('id_password2')">
-👁
-</span>
-
-</div>
-
-{% if form.password2.errors %}
-<div class="error-text">
-{{ form.password2.errors.0 }}
-</div>
-{% endif %}
-
-</div>
-
-
-<button class="btn-register">Register</button>
-
-<p class="login-link">
-Already have an account?
-<a href="{% url 'login' %}">Login</a>
-</p>
-
-</form>
-
-</div>
-
-<script src="{% static 'js/register.js' %}"></script>
+      const l = levels[score] || levels[0];
+      fill.style.width      = l.pct + '%';
+      fill.style.background = l.bg;
+      label.textContent     = l.txt;
+      label.style.color     = l.pct >= 80 ? '#2D6A4F' : l.pct >= 60 ? '#9B5D2D' : '#9B2335';
+      if (!l.txt) label.style.color = 'var(--text-muted)';
+    });
+  }
+</script>
+{% endblock %}
 
 {% endblock %}

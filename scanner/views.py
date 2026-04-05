@@ -210,6 +210,94 @@ def image_scanner(request):
 
     })
 
+# def text_analyzer(request):
+
+#     form = TextInputForm()
+
+#     results = None
+#     scan_id = None
+
+#     ai_count = 0
+#     human_count = 0
+#     mixed_count = 0
+
+#     ai_percent = 0
+#     human_percent = 0
+#     mixed_percent = 0
+
+#     confidence = 0
+
+#     if request.method == "POST":
+
+#         form = TextInputForm(request.POST)
+
+#         if form.is_valid():
+
+#             text_obj = form.save()
+
+#             text_data = text_obj.text
+
+#             sentences = split_sentences(text_data)
+
+#             processed = process_text(sentences)
+
+#             results = analyze_sentences(processed)
+
+#             for r in results:
+
+#                 if r["classification"] == "AI":
+#                     ai_count += 1
+
+#                 elif r["classification"] == "Human":
+#                     human_count += 1
+
+#                 else:
+#                     mixed_count += 1
+
+#             total = ai_count + human_count + mixed_count
+
+#             if total > 0:
+
+#                 ai_percent = round((ai_count / total) * 100, 2)
+#                 human_percent = round((human_count / total) * 100, 2)
+#                 mixed_percent = round((mixed_count / total) * 100, 2)
+
+#                 confidence = max(ai_percent, human_percent, mixed_percent)
+
+#             # SAVE SCAN ALWAYS
+#             scan = ScanHistory.objects.create(
+
+#                 scan_type="text",
+#                 file_name="User Input Text",
+
+#                 user=request.user if request.user.is_authenticated else None,
+
+#                 result="AI" if ai_percent > human_percent else "Human",
+
+#                 details=json.dumps(results),
+
+#                 accuracy=confidence
+#             )
+
+#             scan_id = scan.id
+
+#     return render(request, "text_analyzer.html", {
+
+#         "form": form,
+#         "results": results,
+
+#         "ai_count": ai_count,
+#         "human_count": human_count,
+#         "mixed_count": mixed_count,
+
+#         "ai_percent": ai_percent,
+#         "human_percent": human_percent,
+#         "mixed_percent": mixed_percent,
+
+#         "confidence": confidence,
+#         "scan_id": scan_id
+#     })
+
 def text_analyzer(request):
 
     form = TextInputForm()
@@ -217,15 +305,12 @@ def text_analyzer(request):
     results = None
     scan_id = None
 
-    ai_count = 0
-    human_count = 0
-    mixed_count = 0
-
     ai_percent = 0
     human_percent = 0
     mixed_percent = 0
 
     confidence = 0
+    final_result = "Mixed"
 
     if request.method == "POST":
 
@@ -234,48 +319,72 @@ def text_analyzer(request):
         if form.is_valid():
 
             text_obj = form.save()
-
             text_data = text_obj.text
 
+            # STEP 1: Split sentences
             sentences = split_sentences(text_data)
 
-            processed = process_text(sentences)
+            # EDGE CASE: Empty input
+            if not sentences:
+                return render(request, "text_analyzer.html", {
+                    "form": form,
+                    "error": "No valid text found."
+                })
 
+            # STEP 2: Process + Analyze
+            processed = process_text(sentences)
             results = analyze_sentences(processed)
 
+            # STEP 3: Weighted scoring (instead of dumb counting)
+            ai_score = 0
+            human_score = 0
+            mixed_score = 0
+
             for r in results:
+                score = r.get("score", 0.5)  # fallback if score missing
 
                 if r["classification"] == "AI":
-                    ai_count += 1
-
+                    ai_score += score
                 elif r["classification"] == "Human":
-                    human_count += 1
-
+                    human_score += score
                 else:
-                    mixed_count += 1
+                    mixed_score += score
 
-            total = ai_count + human_count + mixed_count
+            # STEP 4: Percentage calculation
+            total_score = ai_score + human_score + mixed_score
 
-            if total > 0:
+            if total_score > 0:
+                ai_percent = round((ai_score / total_score) * 100, 2)
+                human_percent = round((human_score / total_score) * 100, 2)
+                mixed_percent = round((mixed_score / total_score) * 100, 2)
 
-                ai_percent = round((ai_count / total) * 100, 2)
-                human_percent = round((human_count / total) * 100, 2)
-                mixed_percent = round((mixed_count / total) * 100, 2)
+            # STEP 5: Final decision with threshold (REAL LOGIC)
+            if ai_percent >= 70:
+                final_result = "AI"
+            elif human_percent >= 70:
+                final_result = "Human"
+            else:
+                final_result = "Mixed"
 
-                confidence = max(ai_percent, human_percent, mixed_percent)
+            # STEP 6: Confidence (based on separation, not max)
+            confidence = round(
+                max(ai_percent, human_percent, mixed_percent)
+                - min(ai_percent, human_percent, mixed_percent),
+                2
+            )
 
-            # SAVE SCAN ALWAYS
+            # DEBUG (remove later)
+            print("Results:", results)
+            print("AI %:", ai_percent, "Human %:", human_percent, "Mixed %:", mixed_percent)
+            print("Final:", final_result, "Confidence:", confidence)
+
+            # STEP 7: Save scan
             scan = ScanHistory.objects.create(
-
                 scan_type="text",
                 file_name="User Input Text",
-
                 user=request.user if request.user.is_authenticated else None,
-
-                result="AI" if ai_percent > human_percent else "Human",
-
+                result=final_result,
                 details=json.dumps(results),
-
                 accuracy=confidence
             )
 
@@ -285,10 +394,6 @@ def text_analyzer(request):
 
         "form": form,
         "results": results,
-
-        "ai_count": ai_count,
-        "human_count": human_count,
-        "mixed_count": mixed_count,
 
         "ai_percent": ai_percent,
         "human_percent": human_percent,
